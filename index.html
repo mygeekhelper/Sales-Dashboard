@@ -461,6 +461,8 @@
 
 <div id="dashboard" style="display: none;">
 <div class="filters">
+
+
 <div class="filter-group">
 <label for="branchFilter">Branch</label>
 <select id="branchFilter" onchange="applyFilters()">
@@ -557,6 +559,61 @@
 </div>
 </div>
 </div>
+
+<!-- Frequency Filter -->
+<div class="filter-group">
+    <label for="frequencyFilter">Frequency</label>
+    <select id="frequencyFilter" onchange="onFrequencyChange()">
+        <option value="Monthly">Monthly</option>
+        <option value="Yearly">Yearly</option>
+        <option value="HalfYearly">Half Yearly</option>
+        <option value="Quarterly">Quarterly</option>
+    </select>
+</div>
+
+<!-- Financial Year -->
+<div class="filter-group" id="fyContainer" style="display:none;">
+    <label>Financial Year</label>
+    <div class="multi-select-container">
+        <div class="multi-select-display" onclick="toggleFYDropdown()">
+            <span id="fyDisplayText">Select Financial Year</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <div class="multi-select-dropdown" id="fyDropdown">
+            <div id="fyOptions"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Half Year -->
+<div class="filter-group" id="halfYearContainer" style="display:none;">
+    <label>Half Year</label>
+    <div class="multi-select-container">
+        <div class="multi-select-display" onclick="toggleHalfYearDropdown()">
+            <span id="halfYearDisplayText">Select Half Year</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <div class="multi-select-dropdown" id="halfYearDropdown">
+            <div id="halfYearOptions"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Quarter -->
+<div class="filter-group" id="quarterContainer" style="display:none;">
+    <label>Quarter</label>
+    <div class="multi-select-container">
+        <div class="multi-select-display" onclick="toggleQuarterDropdown()">
+            <span id="quarterDisplayText">Select Quarters</span>
+            <span class="dropdown-arrow">▼</span>
+        </div>
+        <div class="multi-select-dropdown" id="quarterDropdown">
+            <div id="quarterOptions"></div>
+        </div>
+    </div>
+</div>
+
+
 <div class="filter-group">
 <label>Party Name</label>
 <div class="multi-select-container">
@@ -1007,11 +1064,41 @@
         }
 
         function getSelectedMonths() {
-            return ALL_MONTHS.filter(month => {
-                const checkbox = document.getElementById(`month-${month}`);
-                return checkbox && checkbox.checked;
-            });
-        }
+    const freq = document.getElementById('frequencyFilter').value;
+
+    if (freq === 'Yearly' && selectedFYs.length) {
+        return availableMonths.filter(m =>
+            selectedFYs.some(fy => m.endsWith(fy.split('-')[0].slice(-2)) || m.endsWith(fy.split('-')[1]))
+        );
+    }
+
+    if (freq === 'HalfYearly' && selectedHalfYears.length) {
+        return availableMonths.filter(m => {
+            const mon = m.split('-')[0];
+            return (selectedHalfYears.includes('H1') && ['Apr','May','Jun','Jul','Aug','Sep'].includes(mon)) ||
+                   (selectedHalfYears.includes('H2') && ['Oct','Nov','Dec','Jan','Feb','Mar'].includes(mon));
+        });
+    }
+
+    if (freq === 'Quarterly' && selectedQuarters.length) {
+        const qMap = {
+            Q1:['Apr','May','Jun'],
+            Q2:['Jul','Aug','Sep'],
+            Q3:['Oct','Nov','Dec'],
+            Q4:['Jan','Feb','Mar']
+        };
+        return availableMonths.filter(m =>
+            selectedQuarters.some(q => qMap[q].includes(m.split('-')[0]))
+        );
+    }
+
+    // Default Monthly
+    return ALL_MONTHS.filter(m => {
+        const cb = document.getElementById(`month-${m}`);
+        return cb && cb.checked;
+    });
+}
+
 
         function toggleMonthDropdown() {
             const dropdown = document.getElementById('monthDropdown');
@@ -1759,6 +1846,106 @@
         function formatNumber(value) {
             return new Intl.NumberFormat('en-IN').format(value);
         }
+
+
+let detectedFYs = [];
+let selectedFYs = [];
+let selectedHalfYears = [];
+let selectedQuarters = [];
+
+/* ---------- Frequency Change ---------- */
+function onFrequencyChange() {
+    const freq = document.getElementById('frequencyFilter').value;
+
+    document.getElementById('fyContainer').style.display = freq === 'Yearly' ? 'block' : 'none';
+    document.getElementById('halfYearContainer').style.display = freq === 'HalfYearly' ? 'block' : 'none';
+    document.getElementById('quarterContainer').style.display = freq === 'Quarterly' ? 'block' : 'none';
+
+    applyFilters();
+}
+
+/* ---------- Detect Financial Years from CSV ---------- */
+function detectFinancialYears() {
+    const years = new Set();
+
+    availableMonths.forEach(m => {
+        const [mon, yr] = m.split('-');
+        const year = parseInt(yr);
+        if (['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(mon)) {
+            years.add(`${year}-${(year+1).toString().slice(-2)}`);
+        }
+    });
+
+    detectedFYs = [...years];
+    populateFYFilter();
+}
+
+/* ---------- Populate FY ---------- */
+function populateFYFilter() {
+    const container = document.getElementById('fyOptions');
+    container.innerHTML = '';
+
+    detectedFYs.forEach(fy => {
+        container.innerHTML += `
+            <div class="multi-select-option">
+                <input type="checkbox" value="${fy}" onchange="updateFYSelection()">
+                <label>${fy}</label>
+            </div>`;
+    });
+}
+
+function updateFYSelection() {
+    selectedFYs = [...document.querySelectorAll('#fyOptions input:checked')].map(cb => cb.value);
+    document.getElementById('fyDisplayText').textContent =
+        selectedFYs.length ? selectedFYs.join(', ') : 'Select Financial Year';
+    applyFilters();
+}
+
+/* ---------- Half Year ---------- */
+function populateHalfYear() {
+    document.getElementById('halfYearOptions').innerHTML = `
+        <div class="multi-select-option"><input type="checkbox" value="H1" onchange="updateHalfYear()"> Apr-Sep</div>
+        <div class="multi-select-option"><input type="checkbox" value="H2" onchange="updateHalfYear()"> Oct-Mar</div>`;
+}
+populateHalfYear();
+
+function updateHalfYear() {
+    selectedHalfYears = [...document.querySelectorAll('#halfYearOptions input:checked')].map(cb => cb.value);
+    document.getElementById('halfYearDisplayText').textContent =
+        selectedHalfYears.length ? selectedHalfYears.join(', ') : 'Select Half Year';
+    applyFilters();
+}
+
+/* ---------- Quarter ---------- */
+function populateQuarter() {
+    document.getElementById('quarterOptions').innerHTML = `
+        <div class="multi-select-option"><input type="checkbox" value="Q1" onchange="updateQuarter()"> Q1</div>
+        <div class="multi-select-option"><input type="checkbox" value="Q2" onchange="updateQuarter()"> Q2</div>
+        <div class="multi-select-option"><input type="checkbox" value="Q3" onchange="updateQuarter()"> Q3</div>
+        <div class="multi-select-option"><input type="checkbox" value="Q4" onchange="updateQuarter()"> Q4</div>`;
+}
+populateQuarter();
+
+function updateQuarter() {
+    selectedQuarters = [...document.querySelectorAll('#quarterOptions input:checked')].map(cb => cb.value);
+    document.getElementById('quarterDisplayText').textContent =
+        selectedQuarters.length ? selectedQuarters.join(', ') : 'Select Quarters';
+    applyFilters();
+}
+
+function initializeDashboard() {
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    populateFilters();
+    detectFinancialYears();   // ✅ ADD THIS LINE
+
+    updateDashboard();
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleString('en-IN');
+}
+
 
         window.addEventListener('load', loadData);
 </script>
