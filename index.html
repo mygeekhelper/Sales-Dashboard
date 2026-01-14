@@ -444,7 +444,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>?? TVM-SALES Dashboard</h1>
+            <h1>📊 TVM-SALES Dashboard</h1>
             <p class="subtitle">Sales Analytics and Insights</p>
             <p class="designer">Designed by Prasad K</p>
         </header>
@@ -455,7 +455,7 @@
         </div>
 
         <div id="error" class="error" style="display: none;">
-            <div>?? Error Loading Data</div>
+            <div>⚠️ Error Loading Data</div>
             <div class="error-details" id="errorDetails"></div>
         </div>
 
@@ -478,7 +478,7 @@
                     <div class="multi-select-container">
                         <div class="multi-select-display" id="groupDisplay" onclick="toggleGroupDropdown()">
                             <span id="groupDisplayText">All Groups Selected</span>
-                            <span class="dropdown-arrow" id="groupArrow">?</span>
+                            <span class="dropdown-arrow" id="groupArrow">▼</span>
                         </div>
                         <div class="multi-select-dropdown" id="groupDropdown">
                             <div class="multi-select-option select-all">
@@ -495,67 +495,28 @@
                     </div>
                 </div>
 
-
-<!-- Frequency Filter -->
-<div class="filter-group">
+			<div class="filter-group">
   <label for="frequencyFilter">Frequency</label>
   <select id="frequencyFilter" onchange="onFrequencyChange()">
-    <option value="Monthly">Monthly</option>
     <option value="Yearly">Yearly</option>
-    <option value="HalfYearly">Half Yearly</option>
+    <option value="Half-Yearly">Half-Yearly</option>
     <option value="Quarterly">Quarterly</option>
   </select>
 </div>
 
-<!-- Financial Year Filter -->
-<div class="filter-group" id="yearFilterBox" style="display:none;">
-  <label>Financial Year</label>
-  <div class="multi-select-container">
-    <div class="multi-select-display" onclick="toggleDropdown('year')">
-      <span id="yearDisplayText">Select Financial Year</span>
-      <span class="dropdown-arrow">▼</span>
-    </div>
-    <div class="multi-select-dropdown" id="yearDropdown">
-      <div id="yearOptions"></div>
-    </div>
-  </div>
+<div class="filter-group" id="periodGroup" style="display:none;">
+  <label for="periodFilter">Select Period</label>
+  <select id="periodFilter" onchange="applyFilters()"></select>
 </div>
 
-<!-- Half Year Filter -->
-<div class="filter-group" id="halfYearFilterBox" style="display:none;">
-  <label>Half Year</label>
-  <div class="multi-select-container">
-    <div class="multi-select-display" onclick="toggleDropdown('half')">
-      <span id="halfDisplayText">Select Half Year</span>
-      <span class="dropdown-arrow">▼</span>
-    </div>
-    <div class="multi-select-dropdown" id="halfDropdown">
-      <div id="halfOptions"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Quarter Filter -->
-<div class="filter-group" id="quarterFilterBox" style="display:none;">
-  <label>Quarter</label>
-  <div class="multi-select-container">
-    <div class="multi-select-display" onclick="toggleDropdown('quarter')">
-      <span id="quarterDisplayText">Select Quarter</span>
-      <span class="dropdown-arrow">▼</span>
-    </div>
-    <div class="multi-select-dropdown" id="quarterDropdown">
-      <div id="quarterOptions"></div>
-    </div>
-  </div>
-</div>
-
-
+		
+			
                 <div class="filter-group">
                     <label>Select Months</label>
                     <div class="multi-select-container">
                         <div class="multi-select-display" id="monthDisplay" onclick="toggleMonthDropdown()">
                             <span id="monthDisplayText">All Months Selected (12)</span>
-                            <span class="dropdown-arrow" id="monthArrow">?</span>
+                            <span class="dropdown-arrow" id="monthArrow">▼</span>
                         </div>
                         <div class="multi-select-dropdown" id="monthDropdown">
                             <div class="multi-select-option select-all">
@@ -618,7 +579,7 @@
                     <div class="multi-select-container">
                         <div class="multi-select-display" id="partyDisplay" onclick="togglePartyDropdown()">
                             <span id="partyDisplayText">All Parties Selected</span>
-                            <span class="dropdown-arrow" id="partyArrow">?</span>
+                            <span class="dropdown-arrow" id="partyArrow">▼</span>
                         </div>
                         <div class="multi-select-dropdown" id="partyDropdown">
                             <div class="multi-select-option select-all">
@@ -639,7 +600,7 @@
             <div class="kpi-grid">
                 <div class="kpi-card">
                     <div class="kpi-label">Total Revenue</div>
-                    <div class="kpi-value" id="totalRevenue">?0</div>
+                    <div class="kpi-value" id="totalRevenue">₹0</div>
                 </div>
                 <div class="kpi-card purple">
                     <div class="kpi-label">Total Customers</div>
@@ -651,7 +612,7 @@
                 </div>
                 <div class="kpi-card orange">
                     <div class="kpi-label">Avg Revenue/Customer</div>
-                    <div class="kpi-value" id="avgRevenue">?0</div>
+                    <div class="kpi-value" id="avgRevenue">₹0</div>
                 </div>
             </div>
 
@@ -728,12 +689,24 @@
         let rawData = [];
         let charts = {};
         let availableMonths = [];
-         let selectedFrequency = 'Monthly';
-let selectedYears = [];
-let selectedHalves = [];
-let selectedQuarters = [];
 
         const ALL_MONTHS = ['Apr-25', 'May-25', 'Jun-25', 'Jul-25', 'Aug-25', 'Sep-25', 'Oct-25', 'Nov-25', 'Dec-25', 'Jan-26', 'Feb-26', 'Mar-26'];
+	const FREQUENCY_MAP = {
+  "Yearly": {
+    "FY 2025-26": ['Apr-25','May-25','Jun-25','Jul-25','Aug-25','Sep-25','Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26']
+  },
+  "Half-Yearly": {
+    "H1 (Apr-Sep)": ['Apr-25','May-25','Jun-25','Jul-25','Aug-25','Sep-25'],
+    "H2 (Oct-Mar)": ['Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26']
+  },
+  "Quarterly": {
+    "Q1 (Apr-Jun)": ['Apr-25','May-25','Jun-25'],
+    "Q2 (Jul-Sep)": ['Jul-25','Aug-25','Sep-25'],
+    "Q3 (Oct-Dec)": ['Oct-25','Nov-25','Dec-25'],
+    "Q4 (Jan-Mar)": ['Jan-26','Feb-26','Mar-26']
+  }
+};
+
 
         async function loadData() {
             const csvFileName = 'SALESMIS.csv';
@@ -786,58 +759,6 @@ let selectedQuarters = [];
             
             console.log('Available months in CSV:', availableMonths);
         }
-
-
-         function getFinancialYearsFromCSV() {
-  const years = new Set();
-
-  availableMonths.forEach(m => {
-    const year = parseInt(m.split('-')[1]);
-    if (m.startsWith('Jan') || m.startsWith('Feb') || m.startsWith('Mar')) {
-      years.add(`${year-1}-${year}`);
-    } else {
-      years.add(`${year}-${year+1}`);
-    }
-  });
-
-  return Array.from(years).sort();
-}
-
-function populateFrequencyFilters() {
-  // Yearly
-  const years = getFinancialYearsFromCSV();
-  document.getElementById('yearOptions').innerHTML =
-    years.map(y => `
-      <div class="multi-select-option">
-        <input type="checkbox" value="${y}" onchange="applyFilters()">
-        <label>${y}</label>
-      </div>
-    `).join('');
-
-  // Half Year
-  document.getElementById('halfOptions').innerHTML = `
-    <div class="multi-select-option">
-      <input type="checkbox" value="H1" onchange="applyFilters()">
-      <label>Apr – Sep</label>
-    </div>
-    <div class="multi-select-option">
-      <input type="checkbox" value="H2" onchange="applyFilters()">
-      <label>Oct – Mar</label>
-    </div>
-  `;
-
-  // Quarter
-  document.getElementById('quarterOptions').innerHTML = ['Q1','Q2','Q3','Q4']
-    .map(q => `
-      <div class="multi-select-option">
-        <input type="checkbox" value="${q}" onchange="applyFilters()">
-        <label>${q}</label>
-      </div>
-    `).join('');
-}
-
-          
-
 
         function hasDataForMonth(month) {
             if (!availableMonths.includes(month)) return false;
@@ -894,7 +815,8 @@ function populateFrequencyFilters() {
             
             populateFilters();
             updateDashboard();
-            populateFrequencyFilters();
+            onFrequencyChange();
+
             document.getElementById('lastUpdate').textContent = new Date().toLocaleString('en-IN');
         }
 
@@ -928,6 +850,27 @@ function populateFrequencyFilters() {
                 container.appendChild(div);
             });
         }
+
+	function onFrequencyChange() {
+  const freq = document.getElementById('frequencyFilter').value;
+  const periodGroup = document.getElementById('periodGroup');
+  const periodFilter = document.getElementById('periodFilter');
+
+  periodFilter.innerHTML = '';
+
+  if (freq === 'Yearly') {
+    periodGroup.style.display = 'none';
+  } else {
+    periodGroup.style.display = 'block';
+    Object.keys(FREQUENCY_MAP[freq]).forEach(p => {
+      periodFilter.innerHTML += `<option value="${p}">${p}</option>`;
+    });
+  }
+
+  applyFilters();
+}
+
+
 
         function toggleGroupDropdown() {
             const dropdown = document.getElementById('groupDropdown');
@@ -1120,47 +1063,14 @@ function populateFrequencyFilters() {
         }
 
         function getSelectedMonths() {
-  if (selectedFrequency === 'Monthly') {
-    return ALL_MONTHS.filter(m => {
-      const cb = document.getElementById(`month-${m}`);
-      return cb && cb.checked;
-    });
+  const freq = document.getElementById('frequencyFilter').value;
+  const period = document.getElementById('periodFilter').value;
+
+  if (freq === 'Yearly') {
+    return FREQUENCY_MAP['Yearly']['FY 2025-26'];
   }
 
-  if (selectedFrequency === 'Quarterly') {
-    const qs = Array.from(document.querySelectorAll('#quarterOptions input:checked'))
-      .map(c => c.value);
-    return qs.flatMap(q =>
-      q === 'Q1' ? ['Apr-25','May-25','Jun-25'] :
-      q === 'Q2' ? ['Jul-25','Aug-25','Sep-25'] :
-      q === 'Q3' ? ['Oct-25','Nov-25','Dec-25'] :
-      ['Jan-26','Feb-26','Mar-26']
-    );
-  }
-
-  if (selectedFrequency === 'HalfYearly') {
-    const hs = Array.from(document.querySelectorAll('#halfOptions input:checked'))
-      .map(c => c.value);
-    return hs.flatMap(h =>
-      h === 'H1'
-        ? ['Apr-25','May-25','Jun-25','Jul-25','Aug-25','Sep-25']
-        : ['Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26']
-    );
-  }
-
-  if (selectedFrequency === 'Yearly') {
-    const ys = Array.from(document.querySelectorAll('#yearOptions input:checked'))
-      .map(c => c.value);
-    return ALL_MONTHS.filter(m =>
-      ys.some(y => {
-        const [s,e] = y.split('-').map(Number);
-        const my = parseInt(m.split('-')[1]);
-        return my === s || my === e;
-      })
-    );
-  }
-
-  return ALL_MONTHS;
+  return FREQUENCY_MAP[freq][period] || [];
 }
 
 
@@ -1327,7 +1237,7 @@ function populateFrequencyFilters() {
                             beginAtZero: true,
                             ticks: {
                                 color: '#94a3b8',
-                                callback: (value) => '?' + (value / 100000).toFixed(1) + 'L'
+                                callback: (value) => '₹' + (value / 100000).toFixed(1) + 'L'
                             },
                             grid: { color: '#334155' }
                         },
@@ -1391,7 +1301,7 @@ function populateFrequencyFilters() {
                             ticks: {
                                 color: '#94a3b8',
                                 font: { size: 9 },
-                                callback: (value) => '?' + (value / 100000).toFixed(1) + 'L'
+                                callback: (value) => '₹' + (value / 100000).toFixed(1) + 'L'
                             },
                             grid: { color: '#334155' }
                         },
@@ -1522,7 +1432,7 @@ function populateFrequencyFilters() {
                             ticks: {
                                 color: '#94a3b8',
                                 font: { size: 10 },
-                                callback: (value) => '?' + (value / 100000).toFixed(1) + 'L'
+                                callback: (value) => '₹' + (value / 100000).toFixed(1) + 'L'
                             },
                             grid: { color: '#334155' }
                         },
@@ -1604,7 +1514,7 @@ function populateFrequencyFilters() {
                             ticks: {
                                 color: '#94a3b8',
                                 font: { size: 10 },
-                                callback: (value) => '?' + (value / 100000).toFixed(1) + 'L'
+                                callback: (value) => '₹' + (value / 100000).toFixed(1) + 'L'
                             },
                             grid: { color: '#334155' }
                         },
@@ -1685,7 +1595,7 @@ function populateFrequencyFilters() {
                             ticks: {
                                 color: '#94a3b8',
                                 font: { size: 9 },
-                                callback: (value) => '?' + (value / 100000).toFixed(1) + 'L'
+                                callback: (value) => '₹' + (value / 100000).toFixed(1) + 'L'
                             },
                             grid: { color: '#334155' }
                         },
@@ -1803,7 +1713,7 @@ function populateFrequencyFilters() {
                             callbacks: {
                                 label: (context) => {
                                     const value = context.parsed.y;
-                                    return `${context.dataset.label}: ${value.toFixed(1)} L (?${(value * 100000).toLocaleString('en-IN')})`;
+                                    return `${context.dataset.label}: ${value.toFixed(1)} L (₹${(value * 100000).toLocaleString('en-IN')})`;
                                 }
                             },
                             backgroundColor: '#1e293b',
@@ -1853,11 +1763,11 @@ function populateFrequencyFilters() {
                 <th style="text-align: left;">Branch</th>
                 <th>Q1 (Lakhs)<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q1.periodLabel}</span></th>
                 <th>Q2 (Lakhs)<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q2.periodLabel}</span></th>
-                <th class="q3-col">Q3 (Lakhs) ${quarterInfo.q3.isPartial ? '??' : ''}<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q3.periodLabel}</span></th>
+                <th class="q3-col">Q3 (Lakhs) ${quarterInfo.q3.isPartial ? '⚠️' : ''}<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q3.periodLabel}</span></th>
                 <th class="q4-col">Q4 (Lakhs)<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q4.periodLabel}</span></th>
-                <th>Q1?Q2 Growth</th>
-                <th class="q3-col">Q2?Q3 Growth</th>
-                <th class="q4-col">Q3?Q4 Growth</th>
+                <th>Q1→Q2 Growth</th>
+                <th class="q3-col">Q2→Q3 Growth</th>
+                <th class="q4-col">Q3→Q4 Growth</th>
             `;
             
             tbody.innerHTML = '';
@@ -1881,17 +1791,17 @@ function populateFrequencyFilters() {
                     <td class="q4-col"><strong>${q4.toFixed(1)}</strong></td>
                     <td>
                         <span class="growth-badge ${q1ToQ2Growth >= 0 ? 'growth-positive' : 'growth-negative'}">
-                            ${q1ToQ2Growth > 0 ? '?' : '?'} ${Math.abs(q1ToQ2Growth).toFixed(1)}%
+                            ${q1ToQ2Growth > 0 ? '▲' : '▼'} ${Math.abs(q1ToQ2Growth).toFixed(1)}%
                         </span>
                     </td>
                     <td class="q3-col">
                         <span class="growth-badge ${q2ToQ3Growth >= 0 ? 'growth-positive' : 'growth-negative'}">
-                            ${q2ToQ3Growth > 0 ? '?' : '?'} ${Math.abs(q2ToQ3Growth).toFixed(1)}%
+                            ${q2ToQ3Growth > 0 ? '▲' : '▼'} ${Math.abs(q2ToQ3Growth).toFixed(1)}%
                         </span>
                     </td>
                     <td class="q4-col">
                         <span class="growth-badge ${q3ToQ4Growth >= 0 ? 'growth-positive' : 'growth-negative'}">
-                            ${q3ToQ4Growth > 0 ? '?' : '?'} ${Math.abs(q3ToQ4Growth).toFixed(1)}%
+                            ${q3ToQ4Growth > 0 ? '▲' : '▼'} ${Math.abs(q3ToQ4Growth).toFixed(1)}%
                         </span>
                     </td>
                 `;
@@ -1912,30 +1822,6 @@ function populateFrequencyFilters() {
         }
 
         window.addEventListener('load', loadData);
-
-
-
-         
-          function onFrequencyChange() {
-  selectedFrequency = document.getElementById('frequencyFilter').value;
-
-  document.getElementById('yearFilterBox').style.display =
-    selectedFrequency === 'Yearly' ? 'block' : 'none';
-
-  document.getElementById('halfYearFilterBox').style.display =
-    selectedFrequency === 'HalfYearly' ? 'block' : 'none';
-
-  document.getElementById('quarterFilterBox').style.display =
-    selectedFrequency === 'Quarterly' ? 'block' : 'none';
-
-  applyFilters();
-}
-
-
-
-
-
-
 </script>
 
 </body>
