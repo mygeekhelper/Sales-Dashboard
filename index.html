@@ -494,19 +494,42 @@
                         </div>
                     </div>
                 </div>
-
-			<div class="filter-group">
-  <label for="frequencyFilter">Frequency</label>
+<!-- Frequency -->
+<div class="filter-group">
+  <label>Frequency</label>
   <select id="frequencyFilter" onchange="onFrequencyChange()">
+    <option value="">Select Frequency</option>
     <option value="Yearly">Yearly</option>
     <option value="Half-Yearly">Half-Yearly</option>
     <option value="Quarterly">Quarterly</option>
   </select>
 </div>
 
-<div class="filter-group" id="periodGroup" style="display:none;">
-  <label for="periodFilter">Select Period</label>
-  <select id="periodFilter" onchange="applyFilters()"></select>
+<!-- Frequency Multi Select -->
+<div class="filter-group" id="frequencyMultiGroup" style="display:none;">
+  <label id="frequencyLabel"></label>
+
+  <div class="multi-select-container">
+    <div class="multi-select-display" onclick="toggleFrequencyDropdown()">
+      <span id="frequencyDisplayText">Select</span>
+      <span class="dropdown-arrow" id="frequencyArrow">▼</span>
+    </div>
+
+    <div class="multi-select-dropdown" id="frequencyDropdown">
+      <div class="multi-select-option select-all">
+        <input type="checkbox" id="selectAllFrequency" checked onchange="toggleAllFrequency()">
+        <label>Select All</label>
+      </div>
+
+      <div style="padding:6px;border-bottom:1px solid #334155">
+        <input type="text" placeholder="Search..."
+          onkeyup="searchFrequency(this.value)"
+          style="width:100%;padding:6px;background:#0f172a;border:1px solid #334155;color:#e2e8f0">
+      </div>
+
+      <div id="frequencyOptions"></div>
+    </div>
+  </div>
 </div>
 
 		
@@ -691,7 +714,7 @@
         let availableMonths = [];
 
         const ALL_MONTHS = ['Apr-25', 'May-25', 'Jun-25', 'Jul-25', 'Aug-25', 'Sep-25', 'Oct-25', 'Nov-25', 'Dec-25', 'Jan-26', 'Feb-26', 'Mar-26'];
-	const FREQUENCY_MAP = {
+	const FREQUENCY_PERIODS = {
   "Yearly": {
     "FY 2025-26": ['Apr-25','May-25','Jun-25','Jul-25','Aug-25','Sep-25','Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26']
   },
@@ -851,22 +874,29 @@
             });
         }
 
-	function onFrequencyChange() {
-  const freq = document.getElementById('frequencyFilter').value;
-  const periodGroup = document.getElementById('periodGroup');
-  const periodFilter = document.getElementById('periodFilter');
+function onFrequencyChange() {
+  const freq = frequencyFilter.value;
+  const group = document.getElementById('frequencyMultiGroup');
+  const optionsDiv = document.getElementById('frequencyOptions');
 
-  periodFilter.innerHTML = '';
-
-  if (freq === 'Yearly') {
-    periodGroup.style.display = 'none';
-  } else {
-    periodGroup.style.display = 'block';
-    Object.keys(FREQUENCY_MAP[freq]).forEach(p => {
-      periodFilter.innerHTML += `<option value="${p}">${p}</option>`;
-    });
+  if (!freq) {
+    group.style.display = 'none';
+    return;
   }
 
+  group.style.display = 'block';
+  document.getElementById('frequencyLabel').innerText = `Select ${freq}`;
+  optionsDiv.innerHTML = '';
+
+  Object.keys(FREQUENCY_PERIODS[freq]).forEach(p => {
+    optionsDiv.innerHTML += `
+      <div class="multi-select-option freq-option">
+        <input type="checkbox" value="${p}" checked onchange="updateFrequencySelection()">
+        <label>${p}</label>
+      </div>`;
+  });
+
+  updateFrequencyDisplay();
   applyFilters();
 }
 
@@ -979,6 +1009,47 @@
             applyFilters();
         }
 
+
+function toggleFrequencyDropdown() {
+  frequencyDropdown.classList.toggle('open');
+  frequencyArrow.classList.toggle('open');
+}
+
+function toggleAllFrequency() {
+  document.querySelectorAll('.freq-option input')
+    .forEach(cb => cb.checked = selectAllFrequency.checked);
+  updateFrequencyDisplay();
+  applyFilters();
+}
+
+function updateFrequencySelection() {
+  const all = [...document.querySelectorAll('.freq-option input')]
+    .every(cb => cb.checked);
+  selectAllFrequency.checked = all;
+  updateFrequencyDisplay();
+  applyFilters();
+}
+
+function updateFrequencyDisplay() {
+  const checked = document.querySelectorAll('.freq-option input:checked');
+  const total = document.querySelectorAll('.freq-option input').length;
+
+  if (checked.length === 0)
+    frequencyDisplayText.innerText = 'None Selected';
+  else if (checked.length === total)
+    frequencyDisplayText.innerText = `All Selected (${total})`;
+  else
+    frequencyDisplayText.innerText = `${checked.length} Selected`;
+}
+
+function searchFrequency(val) {
+  document.querySelectorAll('.freq-option').forEach(opt => {
+    opt.style.display = opt.innerText.toLowerCase().includes(val.toLowerCase())
+      ? 'flex' : 'none';
+  });
+}
+
+
         function updatePartySelection() {
             const checkboxes = document.querySelectorAll('#partyOptions input[type="checkbox"]');
             const allChecked = Array.from(checkboxes).every(cb => cb.checked);
@@ -1063,14 +1134,18 @@
         }
 
         function getSelectedMonths() {
-  const freq = document.getElementById('frequencyFilter').value;
-  const period = document.getElementById('periodFilter').value;
+  const freq = frequencyFilter.value;
+  if (!freq) return ALL_MONTHS;
 
-  if (freq === 'Yearly') {
-    return FREQUENCY_MAP['Yearly']['FY 2025-26'];
-  }
+  const selectedPeriods = [...document.querySelectorAll('.freq-option input:checked')]
+    .map(cb => cb.value);
 
-  return FREQUENCY_MAP[freq][period] || [];
+  let months = [];
+  selectedPeriods.forEach(p => {
+    months = months.concat(FREQUENCY_PERIODS[freq][p]);
+  });
+
+  return [...new Set(months)];
 }
 
 
