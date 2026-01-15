@@ -875,9 +875,12 @@
         }
 
 function onFrequencyChange() {
-  const freq = frequencyFilter.value;
+  const freq = document.getElementById('frequencyFilter').value;
   const group = document.getElementById('frequencyMultiGroup');
   const optionsDiv = document.getElementById('frequencyOptions');
+
+  // ✅ CLOSE dependent dropdown immediately
+  closeFrequencyDropdown();
 
   if (!freq) {
     group.style.display = 'none';
@@ -891,14 +894,31 @@ function onFrequencyChange() {
   Object.keys(FREQUENCY_PERIODS[freq]).forEach(p => {
     optionsDiv.innerHTML += `
       <div class="multi-select-option freq-option">
-        <input type="checkbox" value="${p}" checked onchange="updateFrequencySelection()">
+        <input type="checkbox" value="${p}" checked onchange="onFrequencyOptionChange()">
         <label>${p}</label>
-      </div>`;
+      </div>
+    `;
   });
 
   updateFrequencyDisplay();
   applyFilters();
 }
+
+
+function onFrequencyOptionChange() {
+  updateFrequencySelection();
+  closeFrequencyDropdown(); // ✅ auto close after selection
+}
+
+
+function closeFrequencyDropdown() {
+  const dropdown = document.getElementById('frequencyDropdown');
+  const arrow = document.getElementById('frequencyArrow');
+
+  if (dropdown) dropdown.classList.remove('open');
+  if (arrow) arrow.classList.remove('open');
+}
+
 
 
 
@@ -1011,9 +1031,13 @@ function onFrequencyChange() {
 
 
 function toggleFrequencyDropdown() {
-  frequencyDropdown.classList.toggle('open');
-  frequencyArrow.classList.toggle('open');
+  const dropdown = document.getElementById('frequencyDropdown');
+  const arrow = document.getElementById('frequencyArrow');
+
+  dropdown.classList.toggle('open');
+  arrow.classList.toggle('open');
 }
+
 
 function toggleAllFrequency() {
   document.querySelectorAll('.freq-option input')
@@ -1231,6 +1255,17 @@ function searchFrequency(val) {
                 if (display) display.classList.remove('open');
                 if (arrow) arrow.classList.remove('open');
             }
+
+
+	// ✅ Close Frequency dropdown on outside click
+const freqContainer = document
+  .getElementById('frequencyMultiGroup')
+  ?.querySelector('.multi-select-container');
+
+if (freqContainer && !freqContainer.contains(event.target)) {
+  closeFrequencyDropdown();
+}
+
         });
 
         function updateDashboard() {
