@@ -1738,10 +1738,10 @@ if (freqContainer && !freqContainer.contains(event.target)) {
         }
 
 function getSelectedQuarters() {
-  const freq = document.getElementById('frequencyFilter')?.value;
+  const freq = document.getElementById('frequencyFilter').value;
 
   if (freq !== 'Quarterly') {
-    return ['Q1', 'Q2', 'Q3', 'Q4'];
+    return ['Q1', 'Q2', 'Q3', 'Q4']; // default behavior
   }
 
   return [...document.querySelectorAll('.freq-option input:checked')]
@@ -1752,7 +1752,7 @@ function getSelectedQuarters() {
 
  function updateQuarterChart(data) {
   const quarterInfo = getQuarterInfo();
-  const selectedQuarters = getSelectedQuarters();   // ✅ NEW
+  const selectedQuarters = getSelectedQuarters();
   const branchQuarters = {};
 
   data.forEach(row => {
@@ -1762,145 +1762,85 @@ function getSelectedQuarters() {
     }
 
     if (selectedQuarters.includes('Q1')) {
-      quarterInfo.q1.months.forEach(month => {
-        const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
-        branchQuarters[branch].Q1 += isNaN(val) ? 0 : val;
+      quarterInfo.q1.months.forEach(m => {
+        branchQuarters[branch].Q1 += parseFloat(String(row[m] || 0).replace(/,/g, '')) || 0;
       });
     }
 
     if (selectedQuarters.includes('Q2')) {
-      quarterInfo.q2.months.forEach(month => {
-        const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
-        branchQuarters[branch].Q2 += isNaN(val) ? 0 : val;
+      quarterInfo.q2.months.forEach(m => {
+        branchQuarters[branch].Q2 += parseFloat(String(row[m] || 0).replace(/,/g, '')) || 0;
       });
     }
 
     if (selectedQuarters.includes('Q3')) {
-      quarterInfo.q3.months.forEach(month => {
-        const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
-        branchQuarters[branch].Q3 += isNaN(val) ? 0 : val;
+      quarterInfo.q3.months.forEach(m => {
+        branchQuarters[branch].Q3 += parseFloat(String(row[m] || 0).replace(/,/g, '')) || 0;
       });
     }
 
     if (selectedQuarters.includes('Q4')) {
-      quarterInfo.q4.months.forEach(month => {
-        const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
-        branchQuarters[branch].Q4 += isNaN(val) ? 0 : val;
+      quarterInfo.q4.months.forEach(m => {
+        branchQuarters[branch].Q4 += parseFloat(String(row[m] || 0).replace(/,/g, '')) || 0;
       });
     }
   });
 
-  const chartData = Object.entries(branchQuarters).map(([branch, quarters]) => ({
-    branch,
-    ...(selectedQuarters.includes('Q1') && { [quarterInfo.q1.label]: quarters.Q1 / 100000 }),
-    ...(selectedQuarters.includes('Q2') && { [quarterInfo.q2.label]: quarters.Q2 / 100000 }),
-    ...(selectedQuarters.includes('Q3') && { [quarterInfo.q3.label]: quarters.Q3 / 100000 }),
-    ...(selectedQuarters.includes('Q4') && { [quarterInfo.q4.label]: quarters.Q4 / 100000 })
-  }));
+  const datasets = [];
+  const colors = { Q1:'#3b82f6', Q2:'#8b5cf6', Q3:'#ec4899', Q4:'#f59e0b' };
+
+  selectedQuarters.forEach(q => {
+    datasets.push({
+      label: quarterInfo[q.toLowerCase()].label,
+      data: Object.values(branchQuarters).map(v => (v[q] / 100000)),
+      backgroundColor: colors[q]
+    });
+  });
 
   if (charts.quarter) charts.quarter.destroy();
 
-  const ctx = document.getElementById('quarterChart').getContext('2d');
-
-  const datasets = [];
-
-  if (selectedQuarters.includes('Q1')) {
-    datasets.push({
-      label: quarterInfo.q1.label,
-      data: chartData.map(d => d[quarterInfo.q1.label] || 0),
-      backgroundColor: '#3b82f6'
-    });
-  }
-
-  if (selectedQuarters.includes('Q2')) {
-    datasets.push({
-      label: quarterInfo.q2.label,
-      data: chartData.map(d => d[quarterInfo.q2.label] || 0),
-      backgroundColor: '#8b5cf6'
-    });
-  }
-
-  if (selectedQuarters.includes('Q3')) {
-    datasets.push({
-      label: quarterInfo.q3.label,
-      data: chartData.map(d => d[quarterInfo.q3.label] || 0),
-      backgroundColor: '#ec4899'
-    });
-  }
-
-  if (selectedQuarters.includes('Q4')) {
-    datasets.push({
-      label: quarterInfo.q4.label,
-      data: chartData.map(d => d[quarterInfo.q4.label] || 0),
-      backgroundColor: '#f59e0b'
-    });
-  }
-
-  charts.quarter = new Chart(ctx, {
+  charts.quarter = new Chart(document.getElementById('quarterChart'), {
     type: 'bar',
     data: {
-      labels: chartData.map(d => d.branch),
+      labels: Object.keys(branchQuarters),
       datasets
     },
-    options: charts.quarter?.options || undefined
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: v => v + ' L' }
+        }
+      }
+    }
   });
 
   updateQuarterTable(branchQuarters, quarterInfo, selectedQuarters);
 }
 
-        function updateQuarterTable(branchQuarters, quarterInfo, selectedQuarters) {
-            const thead = document.getElementById('quarterTableHeader');
-            const tbody = document.getElementById('quarterTableBody');
-            
-            thead.innerHTML = `
-                <th style="text-align: left;">Branch</th>
-                <th>Q1 (Lakhs)<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q1.periodLabel}</span></th>
-                <th>Q2 (Lakhs)<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q2.periodLabel}</span></th>
-                <th class="q3-col">Q3 (Lakhs) ${quarterInfo.q3.isPartial ? '⚠️' : ''}<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q3.periodLabel}</span></th>
-                <th class="q4-col">Q4 (Lakhs)<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q4.periodLabel}</span></th>
-                <th>Q1→Q2 Growth</th>
-                <th class="q3-col">Q2→Q3 Growth</th>
-                <th class="q4-col">Q3→Q4 Growth</th>
-            `;
-            
-            tbody.innerHTML = '';
+       function updateQuarterTable(branchQuarters, quarterInfo, selectedQuarters) {
+  const thead = document.getElementById('quarterTableHeader');
+  const tbody = document.getElementById('quarterTableBody');
 
-            Object.entries(branchQuarters).forEach(([branch, quarters]) => {
-                const q1 = quarters.Q1 / 100000;
-                const q2 = quarters.Q2 / 100000;
-                const q3 = quarters.Q3 / 100000;
-                const q4 = quarters.Q4 / 100000;
-                
-                const q1ToQ2Growth = q1 > 0 ? ((q2 - q1) / q1 * 100) : 0;
-                const q2ToQ3Growth = q2 > 0 ? ((q3 - q2) / q2 * 100) : 0;
-                const q3ToQ4Growth = q3 > 0 ? ((q4 - q3) / q3 * 100) : 0;
+  thead.innerHTML = `<th style="text-align:left">Branch</th>`;
 
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${branch}</td>
-                    <td><strong>${q1.toFixed(1)}</strong></td>
-                    <td><strong>${q2.toFixed(1)}</strong></td>
-                    <td class="q3-col"><strong>${q3.toFixed(1)}</strong></td>
-                    <td class="q4-col"><strong>${q4.toFixed(1)}</strong></td>
-                    <td>
-                        <span class="growth-badge ${q1ToQ2Growth >= 0 ? 'growth-positive' : 'growth-negative'}">
-                            ${q1ToQ2Growth > 0 ? '▲' : '▼'} ${Math.abs(q1ToQ2Growth).toFixed(1)}%
-                        </span>
-                    </td>
-                    <td class="q3-col">
-                        <span class="growth-badge ${q2ToQ3Growth >= 0 ? 'growth-positive' : 'growth-negative'}">
-                            ${q2ToQ3Growth > 0 ? '▲' : '▼'} ${Math.abs(q2ToQ3Growth).toFixed(1)}%
-                        </span>
-                    </td>
-                    <td class="q4-col">
-                        <span class="growth-badge ${q3ToQ4Growth >= 0 ? 'growth-positive' : 'growth-negative'}">
-                            ${q3ToQ4Growth > 0 ? '▲' : '▼'} ${Math.abs(q3ToQ4Growth).toFixed(1)}%
-                        </span>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
+  selectedQuarters.forEach(q => {
+    thead.innerHTML += `<th>${quarterInfo[q.toLowerCase()].label}</th>`;
+  });
+
+  tbody.innerHTML = '';
+
+  Object.entries(branchQuarters).forEach(([branch, q]) => {
+    let row = `<td>${branch}</td>`;
+    selectedQuarters.forEach(sq => {
+      row += `<td>${(q[sq] / 100000).toFixed(1)}</td>`;
+    });
+    tbody.innerHTML += `<tr>${row}</tr>`;
+  });
+}
+
 
         function formatCurrency(value) {
             return new Intl.NumberFormat('en-IN', {
