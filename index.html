@@ -1737,135 +1737,118 @@ if (freqContainer && !freqContainer.contains(event.target)) {
             });
         }
 
-        function updateQuarterChart(data) {
-            const quarterInfo = getQuarterInfo();
-            const branchQuarters = {};
-            
-            data.forEach(row => {
-                const branch = row.Branch || 'Unknown';
-                if (!branchQuarters[branch]) {
-                    branchQuarters[branch] = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
-                }
+function getSelectedQuarters() {
+  const freq = document.getElementById('frequencyFilter')?.value;
 
-                quarterInfo.q1.months.forEach(month => {
-                    const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
-                    branchQuarters[branch].Q1 += isNaN(val) ? 0 : val;
-                });
-                
-                quarterInfo.q2.months.forEach(month => {
-                    const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
-                    branchQuarters[branch].Q2 += isNaN(val) ? 0 : val;
-                });
-                
-                quarterInfo.q3.months.forEach(month => {
-                    const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
-                    branchQuarters[branch].Q3 += isNaN(val) ? 0 : val;
-                });
-                
-                quarterInfo.q4.months.forEach(month => {
-                    const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
-                    branchQuarters[branch].Q4 += isNaN(val) ? 0 : val;
-                });
-            });
+  if (freq !== 'Quarterly') {
+    return ['Q1', 'Q2', 'Q3', 'Q4'];
+  }
 
-            const chartData = Object.entries(branchQuarters).map(([branch, quarters]) => ({
-                branch,
-                [quarterInfo.q1.label]: quarters.Q1 / 100000,
-                [quarterInfo.q2.label]: quarters.Q2 / 100000,
-                [quarterInfo.q3.label]: quarters.Q3 / 100000,
-                [quarterInfo.q4.label]: quarters.Q4 / 100000
-            }));
+  return [...document.querySelectorAll('.freq-option input:checked')]
+    .map(cb => cb.value.split(' ')[0]); // "Q1 (Apr-Jun)" → Q1
+}
 
-            if (charts.quarter) charts.quarter.destroy();
 
-            const ctx = document.getElementById('quarterChart').getContext('2d');
-            charts.quarter = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartData.map(d => d.branch),
-                    datasets: [
-                        {
-                            label: quarterInfo.q1.label,
-                            data: chartData.map(d => d[quarterInfo.q1.label]),
-                            backgroundColor: '#3b82f6'
-                        },
-                        {
-                            label: quarterInfo.q2.label,
-                            data: chartData.map(d => d[quarterInfo.q2.label]),
-                            backgroundColor: '#8b5cf6'
-                        },
-                        {
-                            label: quarterInfo.q3.label,
-                            data: chartData.map(d => d[quarterInfo.q3.label]),
-                            backgroundColor: '#ec4899'
-                        },
-                        {
-                            label: quarterInfo.q4.label,
-                            data: chartData.map(d => d[quarterInfo.q4.label]),
-                            backgroundColor: '#f59e0b'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { 
-                                color: '#94a3b8', 
-                                padding: 15, 
-                                font: { size: 12 },
-                                usePointStyle: true,
-                                pointStyle: 'rect'
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => {
-                                    const value = context.parsed.y;
-                                    return `${context.dataset.label}: ${value.toFixed(1)} L (₹${(value * 100000).toLocaleString('en-IN')})`;
-                                }
-                            },
-                            backgroundColor: '#1e293b',
-                            titleColor: '#f1f5f9',
-                            bodyColor: '#cbd5e1',
-                            borderColor: '#3b82f6',
-                            borderWidth: 1,
-                            padding: 12,
-                            displayColors: true
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Revenue (Lakhs)',
-                                color: '#94a3b8',
-                                font: { size: 12, weight: '600' }
-                            },
-                            ticks: {
-                                color: '#94a3b8',
-                                font: { size: 11 },
-                                callback: (value) => value.toFixed(0) + ' L'
-                            },
-                            grid: { color: '#334155' }
-                        },
-                        x: {
-                            ticks: { 
-                                color: '#94a3b8', 
-                                font: { size: 11, weight: '600' }
-                            },
-                            grid: { display: false }
-                        }
-                    }
-                }
-            });
 
-            updateQuarterTable(branchQuarters, quarterInfo);
-        }
+ function updateQuarterChart(data) {
+  const quarterInfo = getQuarterInfo();
+  const selectedQuarters = getSelectedQuarters();   // ✅ NEW
+  const branchQuarters = {};
 
-        function updateQuarterTable(branchQuarters, quarterInfo) {
+  data.forEach(row => {
+    const branch = row.Branch || 'Unknown';
+    if (!branchQuarters[branch]) {
+      branchQuarters[branch] = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+    }
+
+    if (selectedQuarters.includes('Q1')) {
+      quarterInfo.q1.months.forEach(month => {
+        const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
+        branchQuarters[branch].Q1 += isNaN(val) ? 0 : val;
+      });
+    }
+
+    if (selectedQuarters.includes('Q2')) {
+      quarterInfo.q2.months.forEach(month => {
+        const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
+        branchQuarters[branch].Q2 += isNaN(val) ? 0 : val;
+      });
+    }
+
+    if (selectedQuarters.includes('Q3')) {
+      quarterInfo.q3.months.forEach(month => {
+        const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
+        branchQuarters[branch].Q3 += isNaN(val) ? 0 : val;
+      });
+    }
+
+    if (selectedQuarters.includes('Q4')) {
+      quarterInfo.q4.months.forEach(month => {
+        const val = parseFloat(String(row[month] || '0').replace(/,/g, ''));
+        branchQuarters[branch].Q4 += isNaN(val) ? 0 : val;
+      });
+    }
+  });
+
+  const chartData = Object.entries(branchQuarters).map(([branch, quarters]) => ({
+    branch,
+    ...(selectedQuarters.includes('Q1') && { [quarterInfo.q1.label]: quarters.Q1 / 100000 }),
+    ...(selectedQuarters.includes('Q2') && { [quarterInfo.q2.label]: quarters.Q2 / 100000 }),
+    ...(selectedQuarters.includes('Q3') && { [quarterInfo.q3.label]: quarters.Q3 / 100000 }),
+    ...(selectedQuarters.includes('Q4') && { [quarterInfo.q4.label]: quarters.Q4 / 100000 })
+  }));
+
+  if (charts.quarter) charts.quarter.destroy();
+
+  const ctx = document.getElementById('quarterChart').getContext('2d');
+
+  const datasets = [];
+
+  if (selectedQuarters.includes('Q1')) {
+    datasets.push({
+      label: quarterInfo.q1.label,
+      data: chartData.map(d => d[quarterInfo.q1.label] || 0),
+      backgroundColor: '#3b82f6'
+    });
+  }
+
+  if (selectedQuarters.includes('Q2')) {
+    datasets.push({
+      label: quarterInfo.q2.label,
+      data: chartData.map(d => d[quarterInfo.q2.label] || 0),
+      backgroundColor: '#8b5cf6'
+    });
+  }
+
+  if (selectedQuarters.includes('Q3')) {
+    datasets.push({
+      label: quarterInfo.q3.label,
+      data: chartData.map(d => d[quarterInfo.q3.label] || 0),
+      backgroundColor: '#ec4899'
+    });
+  }
+
+  if (selectedQuarters.includes('Q4')) {
+    datasets.push({
+      label: quarterInfo.q4.label,
+      data: chartData.map(d => d[quarterInfo.q4.label] || 0),
+      backgroundColor: '#f59e0b'
+    });
+  }
+
+  charts.quarter = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartData.map(d => d.branch),
+      datasets
+    },
+    options: charts.quarter?.options || undefined
+  });
+
+  updateQuarterTable(branchQuarters, quarterInfo, selectedQuarters);
+}
+
+        function updateQuarterTable(branchQuarters, quarterInfo, selectedQuarters) {
             const thead = document.getElementById('quarterTableHeader');
             const tbody = document.getElementById('quarterTableBody');
             
