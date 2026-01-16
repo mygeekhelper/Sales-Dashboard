@@ -1820,27 +1820,59 @@ function getSelectedQuarters() {
   updateQuarterTable(branchQuarters, quarterInfo, selectedQuarters);
 }
 
-       function updateQuarterTable(branchQuarters, quarterInfo, selectedQuarters) {
-  const thead = document.getElementById('quarterTableHeader');
-  const tbody = document.getElementById('quarterTableBody');
+     function updateQuarterTable(branchQuarters, quarterInfo) {
+            const thead = document.getElementById('quarterTableHeader');
+            const tbody = document.getElementById('quarterTableBody');
 
-  thead.innerHTML = `<th style="text-align:left">Branch</th>`;
+            thead.innerHTML = `
+<th style="text-align: left;">Branch</th>
+<th>Q1 (Lakhs)<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q1.periodLabel}</span></th>
+<th>Q2 (Lakhs)<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q2.periodLabel}</span></th>
+<th class="q3-col">Q3 (Lakhs) ${quarterInfo.q3.isPartial ? '⚠️' : ''}<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q3.periodLabel}</span></th>
+<th class="q4-col">Q4 (Lakhs)<br><span style="font-size: 0.75rem; font-weight: 400; opacity: 0.8;">${quarterInfo.q4.periodLabel}</span></th>
+<th>Q1→Q2 Growth</th>
+<th class="q3-col">Q2→Q3 Growth</th>
+<th class="q4-col">Q3→Q4 Growth</th>
+            `;
 
-  selectedQuarters.forEach(q => {
-    thead.innerHTML += `<th>${quarterInfo[q.toLowerCase()].label}</th>`;
-  });
+            tbody.innerHTML = '';
 
-  tbody.innerHTML = '';
+            Object.entries(branchQuarters).forEach(([branch, quarters]) => {
+                const q1 = quarters.Q1 / 100000;
+                const q2 = quarters.Q2 / 100000;
+                const q3 = quarters.Q3 / 100000;
+                const q4 = quarters.Q4 / 100000;
 
-  Object.entries(branchQuarters).forEach(([branch, q]) => {
-    let row = `<td>${branch}</td>`;
-    selectedQuarters.forEach(sq => {
-      row += `<td>${(q[sq] / 100000).toFixed(1)}</td>`;
-    });
-    tbody.innerHTML += `<tr>${row}</tr>`;
-  });
-}
+                const q1ToQ2Growth = q1 > 0 ? ((q2 - q1) / q1 * 100) : 0;
+                const q2ToQ3Growth = q2 > 0 ? ((q3 - q2) / q2 * 100) : 0;
+                const q3ToQ4Growth = q3 > 0 ? ((q4 - q3) / q3 * 100) : 0;
 
+                const row = document.createElement('tr');
+                row.innerHTML = `
+<td>${branch}</td>
+<td><strong>${q1.toFixed(1)}</strong></td>
+<td><strong>${q2.toFixed(1)}</strong></td>
+<td class="q3-col"><strong>${q3.toFixed(1)}</strong></td>
+<td class="q4-col"><strong>${q4.toFixed(1)}</strong></td>
+<td>
+<span class="growth-badge ${q1ToQ2Growth >= 0 ? 'growth-positive' : 'growth-negative'}">
+                            ${q1ToQ2Growth > 0 ? '▲' : '▼'} ${Math.abs(q1ToQ2Growth).toFixed(1)}%
+</span>
+</td>
+<td class="q3-col">
+<span class="growth-badge ${q2ToQ3Growth >= 0 ? 'growth-positive' : 'growth-negative'}">
+                            ${q2ToQ3Growth > 0 ? '▲' : '▼'} ${Math.abs(q2ToQ3Growth).toFixed(1)}%
+</span>
+</td>
+<td class="q4-col">
+<span class="growth-badge ${q3ToQ4Growth >= 0 ? 'growth-positive' : 'growth-negative'}">
+                            ${q3ToQ4Growth > 0 ? '▲' : '▼'} ${Math.abs(q3ToQ4Growth).toFixed(1)}%
+</span>
+</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
 
         function formatCurrency(value) {
             return new Intl.NumberFormat('en-IN', {
